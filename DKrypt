@@ -1,0 +1,183 @@
+#!/usr/bin/env python3
+__author__ = "Chris Raitano"
+__copyright__ = "Copyright 2018, Chris Raitano"
+__license__ = "GPL"
+__version__ = "1.0"
+__maintainer__ = "Chris Raitano"
+
+'''
+    Command line decryption tool for:
+        - Caesar cipher
+        - One-time-pad
+        - RSA
+        - Substirution cipher
+'''
+
+import rsa, substitution, caesar, oneTimePad
+import random
+from clippy import clippy
+
+'''
+* Welcomes user and displays a UI for user to choose a decryption method
+'''
+def main():
+  clippy.init()
+  # Output header and menu
+  print(HEADER);
+  selection = clippy.menu(MAIN_MENU, MAIN_MENU_TITLE)
+  while(1):
+      print(clippy.controls.CLR_SCREEN + clippy.controls.SET_CURSOR_0_0, end='\r')
+      # Run selected function or exit
+      if(selection <= 0 or selection >= len(MAIN_MENU)):
+          quit()
+      else:
+          UI_FUNCTIONS[selection - 1]()
+      # Display submenu and process selection
+      sub_selection = clippy.menu(SUBMENU)
+      if(sub_selection < 0 or sub_selection >= len(SUBMENU)):
+          selection = -1 # Signal program to quit
+      elif(sub_selection == 2):
+          print(clippy.controls.CLR_SCREEN + clippy.controls.SET_CURSOR_0_0, end='\r')
+          selection = clippy.menu(MAIN_MENU, MAIN_MENU_TITLE)
+
+'''
+* Randomly replaces 0s with 1s and adds ascii color codes in title
+* Params:
+*   title (string): the uncolored title
+*   Return (string): title with included color values
+'''
+def colorTitle(title):
+    output = ""
+    for c in title:
+        if c == '0' and random.random() > 0.5:
+            c = '1'
+        if c == '1':
+            output += clippy.colors.BRIGHT_BLUE
+        elif c == '0':
+            output += clippy.colors.BRIGHT_CYAN
+        elif c in {'\\', '/', '_', '|', '<'}:
+            output += clippy.styles. RESET + clippy.colors.RED
+        output += c
+    return output
+
+'''
+* Display a UI for decrypting RSA
+'''
+def rsa_ui():
+    #TODO: make this also work with strings
+    c = clippy.get_int("Ciphertext: ")
+    if(c < 0):
+        quit()
+    print("\nIf unknown, leave blank.\n")
+    d = clippy.get_int("Private key exponent (d): ", True)
+    e = clippy.get_int("Public key exponent (e): ", True)
+    n = clippy.get_int("n: ", True)
+    p = clippy.get_int("p: ", True)
+    q = clippy.get_int("q: ", True)
+    dp = clippy.get_int("dp: ", True)
+    dq = clippy.get_int("dq: ", True)
+    result = rsa.decrypt(c, d, e, p, q, dp, dq)
+    if(type(result) != int):
+        print("\nDecrypted message: \n" + result + "\n")
+'''
+* Display a UI for decrypting a substitution cipher
+'''
+def substitution_ui():
+    cipher = clippy.input("Ciphertext: ")
+    if(type(cipher) == int):
+        quit()
+    print("\n          ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+    alphabet = clippy.input("Alphabet: ",
+        lambda key: (key >= clippy.keys.A and key <= clippy.keys.Z) or
+        (key >= clippy.keys.SHIFT_A and key <= clippy.keys.SHIFT_Z) or
+        key == clippy.keys.SPACE)
+    if(type(alphabet) == int):
+        quit()
+    result = substitution.decrypt(cipher, alphabet, True)
+    if(type(result) != int):
+        print("\nDecrypted message: \n" + result + "\n")
+
+'''
+* Display a UI for decrypting a caesar cipher
+'''
+def caesar_ui():
+    cipher = clippy.input("Ciphertext: ")
+    if(type(cipher) == int):
+        quit()
+    shift = clippy.get_int("Shift: ")
+    if(shift < 0):
+        quit()
+    shift = int(shift)
+    result = caesar.decrypt(cipher, shift)
+    print("\nDecrypted message: \n" + str(result) + "\n")
+
+'''
+* Display a UI for decrypting a one-time pad
+'''
+def one_time_pad_ui():
+    cipher = clippy.input("Ciphertext: ")
+    if(type(cipher) == int):
+        quit()
+    pad = clippy.input("Pad: ")
+    if(type(pad) == int):
+        quit()
+    result = oneTimePad.decrypt(cipher, pad)
+    if(type(result) != int):
+        print("\nDecrypted message: \n" + str(result) + "\n")
+
+''' 
+* Clean up and exit the program 
+'''
+def quit():
+    clippy.close()
+    exit()
+
+'''--------------------------------Executable section----------------------------'''
+
+TITLE = r'''
+    0000000\   00\   00\                                    00\
+    00  __00\  00 | 00  |                                   00 |
+    00 |  00 | 00 |00  /   000000\   00\   00\   000000\  000000\
+    00 |  00 | 00000  /   00  __00\  00 |  00 | 00  __00\ \_00  _|
+    00 |  00 | 00  00<    00 |  \__| 00 |  00 | 00 |  00 |  00 |
+    00 |  00 | 00 |\00\   00 |       00 |  00 | 00 |  00 |  00 |00\
+    0000000  | 00 | \00\  00 |       \0000000 | 0000000  |  \0000  |
+    \_______/  \__|  \__| \__|        \____00 | 00  ____/    \____/
+                                     00\   00 | 00 |
+                                     \000000  | 00 |
+                                      \______/  \__|
+
+'''
+MAIN_MENU_TITLE = "Select a cryptosystem"
+
+MAIN_MENU = (
+    "RSA",
+    "Substitution",
+    "Caesar Cipher",
+    "One-time-pad",
+    "Exit"
+)
+SUBMENU = (
+    "Decrypt another message",
+    "Main menu",
+    "Exit"
+)
+
+UI_FUNCTIONS = (rsa_ui, substitution_ui, caesar_ui, one_time_pad_ui)
+
+HEADER = \
+    clippy.colors.BLUE +  "----------------------------------------------------------------------\n\n" + \
+                                                    colorTitle(TITLE) + \
+    clippy.colors.BLUE +  "----------------------------------------------------------------------\n\n" + \
+    clippy.styles.RESET + "    A decription tool\n\n" + \
+                       "    Author:    " + __author__ + "\n" + \
+                       "    Version:   " + __version__ + "\n" + \
+                       "    Copyright: " + __copyright__ + "\n" + \
+                       "    License:   " + __license__ + "\n\n" + \
+    clippy.colors.BLUE +  "----------------------------------------------------------------------\n" + \
+    clippy.styles.RESET
+
+
+# Execute main
+if __name__ == "__main__":
+    main()
